@@ -14,5 +14,5 @@
 - [x] Run type checks and tests, inspect logs, capture desktop and mobile previews, refine UI issues, and save a completed project checkpoint.
 - [x] Add unit tests for receiver-side decoding and framing detection, then rerun the complete validation suite.
 - [x] Save a final project checkpoint after the validated build, test, and visual-review pass.
-- [ ] Create and push the validated Sonic Morse project to the public GitHub repository named sonicwavegg.
-- [ ] Document the Vercel import requirements, protected environment variables, and compatibility caveats for the full-stack application.
+- [x] Create and push the validated Sonic Morse project to the public GitHub repository named sonicwavegg.
+- [x] Document the Vercel import requirements, protected environment variables, and compatibility caveats for the full-stack application.
