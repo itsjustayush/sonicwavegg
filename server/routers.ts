@@ -1,7 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { createVoiceReadout, sanitizeVoiceReadout } from "./elevenlabs";
+import { z } from "zod";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -15,6 +17,11 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+  voice: router({
+    read: protectedProcedure
+      .input(z.object({ text: z.string().min(1).max(280) }))
+      .mutation(async ({ input }) => createVoiceReadout(sanitizeVoiceReadout(input.text))),
   }),
 
   // TODO: add feature routers here, e.g.

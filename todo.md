@@ -1,0 +1,16 @@
+# Project TODO
+
+- [x] Document the Sonic Morse packet format, timing profile, checksum, redundancy, and performance target for sub-second short-message transmissions.
+- [x] Implement a custom multi-tone FSK encoder that emits framing, payload symbols, redundancy, and a checksum as locally generated Web Audio waveforms.
+- [x] Implement microphone capture, frequency analysis, automatic framing detection, demodulation, message decoding, confidence scoring, and decoded-message events.
+- [x] Implement microphone permission states, input and output device selectors, and graceful browser capability/error handling.
+- [x] Build a premium responsive sender panel with data input, protocol estimate, encode/transmit action, outgoing waveform display, and playback feedback.
+- [x] Build a premium responsive receiver panel with listening controls, live oscilloscope, FFT band visualizer, detection state, audio level meter, and decoded output display.
+- [x] Build protocol controls for audible versus near-ultrasonic bands, speed versus robustness, output volume, and optional voice readout.
+- [x] Build an accessible chronological history log for sent and received messages with timestamps, status, and signal-quality badges.
+- [x] Refine the transmission history into a semantic live log with screen-reader labels, explicit sent/received status, and consistent quality badges.
+- [x] Implement a server-side optional ElevenLabs voice-readout procedure that keeps the API key private and returns playable audio only after message validation.
+- [x] Add unit tests for codec framing, checksums, encoding/decoding helpers, and server-side TTS input validation.
+- [x] Run type checks and tests, inspect logs, capture desktop and mobile previews, refine UI issues, and save a completed project checkpoint.
+- [x] Add unit tests for receiver-side decoding and framing detection, then rerun the complete validation suite.
+- [ ] Save a final project checkpoint after the validated build, test, and visual-review pass.
