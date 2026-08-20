@@ -1,6 +1,6 @@
 # Deploying Sonic Morse to Vercel
 
-This repository contains a Vercel import configuration. The Vite client is built and copied to `public/` during the Vercel build, while `server.ts` exports the Express application as a serverless function. Vercel serves the static client through its CDN and invokes the server only for application routes such as tRPC, OAuth, and protected ElevenLabs voice readout.
+This repository contains a Vercel import configuration. The Vite client is built and copied to `public/` during the Vercel build, while `server.ts` exports the Express application as a serverless function. `vercel.json` explicitly sets `outputDirectory` to `public` so Vercel serves `public/index.html`, rather than the `dist/index.js` server bundle. Vercel serves the static client through its CDN and invokes the server only for application routes such as tRPC, OAuth, and protected ElevenLabs voice readout.
 
 ## Import steps
 

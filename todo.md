@@ -16,3 +16,5 @@
 - [x] Save a final project checkpoint after the validated build, test, and visual-review pass.
 - [x] Create and push the validated Sonic Morse project to the public GitHub repository named sonicwavegg.
 - [x] Document the Vercel import requirements, protected environment variables, and compatibility caveats for the full-stack application.
+- [ ] Diagnose and fix the Vercel deployment response that currently renders compiled source code instead of the Sonic Morse application.
+- [ ] Validate the corrected Vercel routing/build configuration locally, push the fix to GitHub, and provide a redeployment instruction.
