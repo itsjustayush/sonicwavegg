@@ -24,3 +24,8 @@
 - [x] Refine the receiver experience and visual system using gbrl.ai as interaction and design inspiration without copying its implementation or content.
 - [x] Add regression tests for impaired/timing-shifted acoustic frames, verify desktop/mobile rendering, and publish the validated receiver update.
 - [x] Save and push the receiver-reliability update, then confirm the live app includes the improved receiver diagnostics.
+- [x] Define an independently implemented Sonic Morse session and automatic audio handoff flow based only on safe, publicly observable interaction principles.
+- [x] Implement explicit session modes, automatic receiver arming, message handoff states, and an independently designed packet activity timeline.
+- [x] Preserve Sonic Morse branding and custom protocol while refining the flow for a concise machine-to-machine audio exchange experience.
+- [x] Add session-flow regression tests, verify the updated interface, and publish the independently implemented update.
+- [x] Add a dedicated session packet timeline that tracks arming, carrier synchronization, sending, receipt, and failure through the independent session state.

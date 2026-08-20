@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import {
   Activity,
   AudioLines,
@@ -27,6 +27,7 @@ import { ReceivedSonicMessage } from "@/lib/sonicReceiver";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
+import { initialSonicSession, sessionActionLabel, sessionTimeline, sonicSessionReducer } from "@/lib/sonicSession";
 
 type HistoryItem = {
   id: string;
@@ -110,6 +111,7 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [lastDecoded, setLastDecoded] = useState<ReceivedSonicMessage | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [session, dispatchSession] = useReducer(sonicSessionReducer, initialSonicSession);
   const voiceReadout = trpc.voice.read.useMutation();
   const { isAuthenticated } = useAuth();
   const settings = useMemo<SonicSettings>(() => ({ band, profile, volume }), [band, profile, volume]);
@@ -117,6 +119,7 @@ export default function Home() {
 
   const handleReceived = useCallback((received: ReceivedSonicMessage) => {
     setLastDecoded(received);
+    dispatchSession({ type: "RECEIVED", message: received.text });
     setHistory(current => [{ id: `${received.receivedAt}-${received.sequence}`, kind: "received" as const, message: received.text, createdAt: received.receivedAt, quality: received.quality, sequence: received.sequence }, ...current].slice(0, 10));
     toast.success("Message detected", { description: `Decoded at ${received.quality}% signal confidence.` });
     if (voiceEnabled && isAuthenticated) {
@@ -134,21 +137,44 @@ export default function Home() {
       : audio.listening
         ? { label: "Scanning", copy: "Listening for the sender’s sync chord. Keep both sides on the same band and profile." }
         : { label: "Receiver idle", copy: "Arm the microphone, then place the sender within clear speaker range." };
+  const timeline = sessionTimeline(session.state, audio.receiverState);
 
   const send = async () => {
     if (!message.trim()) {
       toast.error("Add a short message first.");
       return;
     }
+    if (!audio.listening) {
+      dispatchSession({ type: "ARM" });
+      const armed = await audio.startListening(audio.selectedInputId);
+      if (!armed) {
+        dispatchSession({ type: "FAIL", message: "Microphone channel unavailable" });
+        return;
+      }
+      dispatchSession({ type: "ARMED" });
+    }
     setIsSending(true);
+    dispatchSession({ type: "SEND" });
     try {
       const transmission = await audio.transmit(message.trim());
       setHistory(current => [{ id: `${Date.now()}-${transmission.sequence}`, kind: "sent" as const, message: message.trim(), createdAt: Date.now(), quality: 100, durationMs: transmission.durationMs, sequence: transmission.sequence }, ...current].slice(0, 10));
       toast.success("Sonic frame transmitted", { description: `${transmission.packetBytes} bytes · ${transmission.durationMs} ms modulation.` });
-      window.setTimeout(() => setIsSending(false), transmission.durationMs + 260);
+      window.setTimeout(() => { setIsSending(false); dispatchSession({ type: "SENT" }); }, transmission.durationMs + 260);
     } catch {
       setIsSending(false);
+      dispatchSession({ type: "FAIL", message: "Frame emission could not start" });
     }
+  };
+
+  const toggleSession = async () => {
+    if (session.state === "armed" || session.state === "sending" || session.state === "received") {
+      audio.stopListening();
+      dispatchSession({ type: "STOP" });
+      return;
+    }
+    dispatchSession({ type: "ARM" });
+    const armed = await audio.startListening(audio.selectedInputId);
+    dispatchSession(armed ? { type: "ARMED" } : { type: "FAIL", message: "Microphone channel unavailable" });
   };
 
   const copyMessage = async () => {
@@ -180,6 +206,12 @@ export default function Home() {
             <div className={`rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.13em] ${audio.listening ? "border-[#89f2be]/30 bg-[#89f2be]/10 text-[#89f2be]" : "border-white/[0.09] bg-white/[0.035] text-white/45"}`}><span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${audio.listening ? "live-dot bg-[#89f2be]" : "bg-white/25"}`} />{audio.listening ? "Listening" : "Standby"}</div>
           </div>
         </header>
+
+        <section className={`session-orchestrator session-${session.state}`} aria-label="Sonic session control">
+          <div className="session-intro"><div className="eyebrow"><Radio size={13} /> Session channel</div><h2>Ambient handoff</h2><p>Arm two nearby Sonic Morse nodes, then exchange compact frames without network setup.</p></div>
+          <div className="session-core"><div className="session-rings" aria-hidden="true"><span /><span /><span /></div><div className="session-wave"><Oscilloscope data={session.state === "sending" ? audio.outputWaveform : audio.inputWaveform} color={session.state === "received" ? "#e6d581" : "#89F2BE"} dimmed={session.state === "idle"} /></div><div className="session-readout"><span>CH-01</span><strong>{session.notice}</strong><small>{session.state === "sending" ? `${estimate.durationMs} ms waveform` : session.state === "received" ? "Payload verified" : audio.listening ? "Microphone active" : "Local audio link"}</small></div></div>
+          <div className="session-actions"><button onClick={() => void toggleSession()} disabled={session.state === "arming"} className="session-button"><span className="session-button-dot" />{sessionActionLabel(session.state)}</button><div className="session-timeline" role="list" aria-label="Sonic session packet timeline">{timeline.map((item, index) => <span key={item.id} className={`timeline-item ${item.state}`} role="listitem"><i>{String(index + 1).padStart(2, "0")}</i>{item.label}</span>)}</div><p>{session.state === "received" ? "A valid frame arrived. Continue listening or end the session." : "Use Audible + Robust first when testing a new room."}</p></div>
+        </section>
 
         <section className="grid flex-1 gap-4 py-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_295px]">
           <div className="glass-panel sender-panel min-h-[480px] p-5 sm:p-6">
@@ -219,7 +251,7 @@ export default function Home() {
                 <h2 className="panel-title">Listen for a frame</h2>
                 <p className="panel-copy">Adaptive carrier lock with timing refinement and live confidence.</p>
               </div>
-              <button onClick={() => audio.listening ? audio.stopListening() : void audio.startListening(audio.selectedInputId)} className={`listen-button ${audio.listening ? "is-live" : ""}`}><span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-current/10">{audio.listening ? <MicOff size={14} /> : <Mic size={14} />}</span><span>{audio.listening ? "Stop" : "Start"}</span></button>
+              <button onClick={() => void toggleSession()} className={`listen-button ${audio.listening ? "is-live" : ""}`}><span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-current/10">{audio.listening ? <MicOff size={14} /> : <Mic size={14} />}</span><span>{audio.listening ? "Stop" : "Arm"}</span></button>
             </div>
 
             <div className="receiver-stage">
