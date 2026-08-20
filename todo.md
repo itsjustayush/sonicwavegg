@@ -23,4 +23,4 @@
 - [x] Improve the custom acoustic receiver with tolerance-aware symbol detection, reliable frame synchronization, noise gating, and visible signal diagnostics.
 - [x] Refine the receiver experience and visual system using gbrl.ai as interaction and design inspiration without copying its implementation or content.
 - [x] Add regression tests for impaired/timing-shifted acoustic frames, verify desktop/mobile rendering, and publish the validated receiver update.
-- [ ] Save and push the receiver-reliability update, then confirm the live app includes the improved receiver diagnostics.
+- [x] Save and push the receiver-reliability update, then confirm the live app includes the improved receiver diagnostics.
