@@ -54,6 +54,7 @@ button:disabled { cursor: not-allowed; }
 .listen-button:active { transform: scale(.97); }
 .listen-button.is-live { border-color: rgba(137,242,190,.32); background: rgba(137,242,190,.09); color: #a0f7c7; }
 .decoded-card { min-height: 145px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: rgba(2,10,8,.27); padding: 15px; }
+.receiver-probe { display: flex; align-items: center; gap: 7px; margin-top: 11px; color: rgba(255,255,255,.25); font-family: "DM Mono", monospace; font-size: 8px; font-weight: 500; letter-spacing: .09em; }.receiver-probe span { transition: color .18s cubic-bezier(.23,1,.32,1), text-shadow .18s cubic-bezier(.23,1,.32,1); }.receiver-probe span.active { color: #8ff1bf; text-shadow: 0 0 12px rgba(137,242,190,.42); }.receiver-probe i { width: 100%; max-width: 34px; height: 1px; background: rgba(255,255,255,.09); }.empty-decode strong { color: rgba(164,231,255,.8); font-family: "DM Mono", monospace; font-size: 10px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 .copy-button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: #89f2be; padding: 2px; font-size: 10px; font-weight: 700; }
 .decoded-message { margin-top: 20px; }
 .decoded-message p { margin: 0; word-break: break-word; color: #eefdf4; font-family: "DM Mono", monospace; font-size: 15px; line-height: 1.5; }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { downsampleWaveform, encodeTransmission, SonicSettings } from "@/lib/sonicCodec";
-import { ReceivedSonicMessage, SonicReceiver } from "@/lib/sonicReceiver";
+import { ReceivedSonicMessage, ReceiverDiagnostics, ReceiverState, SonicReceiver } from "@/lib/sonicReceiver";
 
 type AudioDevice = { deviceId: string; label: string };
 type PermissionState = "idle" | "requesting" | "granted" | "denied" | "unsupported" | "error";
@@ -16,6 +16,10 @@ export type SonicAudioState = {
   inputWaveform: number[];
   inputSpectrum: number[];
   outputWaveform: number[];
+  receiverState: ReceiverState;
+  receiverConfidence: number;
+  receiverNoiseFloor: number;
+  receiverFrameProgress: number;
   lastError: string | null;
   outputDeviceSupported: boolean;
 };
@@ -73,6 +77,10 @@ export function useSonicAudio(settings: SonicSettings, onMessage: (message: Rece
     inputWaveform: Array.from({ length: 96 }, () => 0),
     inputSpectrum: Array.from({ length: 32 }, () => 0),
     outputWaveform: Array.from({ length: 108 }, () => 0),
+    receiverState: "idle",
+    receiverConfidence: 0,
+    receiverNoiseFloor: 0,
+    receiverFrameProgress: 0,
     lastError: null,
     outputDeviceSupported: typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype,
   });
@@ -122,7 +130,7 @@ export function useSonicAudio(settings: SonicSettings, onMessage: (message: Rece
     analyserRef.current = null;
     streamRef.current = null;
     receiverRef.current = null;
-    setState(current => ({ ...current, listening: false, inputLevel: 0 }));
+    setState(current => ({ ...current, listening: false, inputLevel: 0, receiverState: "idle", receiverConfidence: 0, receiverFrameProgress: 0 }));
   }, []);
 
   const beginAnimation = useCallback(() => {
@@ -178,7 +186,20 @@ export function useSonicAudio(settings: SonicSettings, onMessage: (message: Rece
       const processor = context.createScriptProcessor(1024, 1, 1);
       const mutedGain = context.createGain();
       mutedGain.gain.value = 0;
-      const receiver = new SonicReceiver(context.sampleRate, latestSettings.current, message => messageHandler.current(message));
+      const receiver = new SonicReceiver(
+        context.sampleRate,
+        latestSettings.current,
+        message => messageHandler.current(message),
+        (diagnostics: ReceiverDiagnostics) => {
+          setState(current => ({
+            ...current,
+            receiverState: diagnostics.state,
+            receiverConfidence: diagnostics.confidence,
+            receiverNoiseFloor: diagnostics.noiseFloor,
+            receiverFrameProgress: diagnostics.frameProgress,
+          }));
+        },
+      );
 
       source.connect(analyser);
       source.connect(processor);

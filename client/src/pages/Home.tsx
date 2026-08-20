@@ -127,6 +127,13 @@ export default function Home() {
   }, [voiceEnabled, voiceReadout]);
 
   const audio = useSonicAudio(settings, handleReceived);
+  const receiverCue = audio.receiverState === "decoding"
+    ? { label: "Frame locked", copy: `Reading payload · ${Math.round(audio.receiverFrameProgress * 100)}% complete` }
+    : audio.receiverState === "syncing"
+      ? { label: "Sync candidate", copy: "Refining a repeated preamble and sync chord…" }
+      : audio.listening
+        ? { label: "Scanning", copy: "Listening for the sender’s sync chord. Keep both sides on the same band and profile." }
+        : { label: "Receiver idle", copy: "Arm the microphone, then place the sender within clear speaker range." };
 
   const send = async () => {
     if (!message.trim()) {
@@ -210,31 +217,32 @@ export default function Home() {
               <div>
                 <div className="eyebrow"><Ear size={13} /> Receiver</div>
                 <h2 className="panel-title">Listen for a frame</h2>
-                <p className="panel-copy">Live microphone analysis with automatic sync detection.</p>
+                <p className="panel-copy">Adaptive carrier lock with timing refinement and live confidence.</p>
               </div>
               <button onClick={() => audio.listening ? audio.stopListening() : void audio.startListening(audio.selectedInputId)} className={`listen-button ${audio.listening ? "is-live" : ""}`}><span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-current/10">{audio.listening ? <MicOff size={14} /> : <Mic size={14} />}</span><span>{audio.listening ? "Stop" : "Start"}</span></button>
             </div>
 
             <div className="receiver-stage">
-              <div className="stage-topline"><div className="flex items-center gap-2"><span className={`signal-point ${audio.listening ? "signal-mint" : "signal-idle"}`} /><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/52">Input oscillator</span></div><span className="font-mono text-[10px] text-white/40">{Math.round(audio.inputLevel * 100)} dB</span></div>
+              <div className="stage-topline"><div className="flex items-center gap-2"><span className={`signal-point ${audio.listening ? "signal-mint" : "signal-idle"}`} /><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/52">Input oscillator</span></div><span className="font-mono text-[10px] text-white/40">{Math.round(audio.receiverConfidence * 100)}% lock</span></div>
               <div className="h-[95px]"><Oscilloscope data={audio.inputWaveform} color="#73D6FF" dimmed={!audio.listening} /></div>
               <div className="mt-2 flex h-[53px] items-end"><Spectrum values={audio.inputSpectrum} active={audio.listening} /></div>
+              <div className="receiver-probe" aria-label={`Receiver status: ${receiverCue.label}`}><span className={audio.receiverState !== "idle" ? "active" : ""}>01 SCAN</span><i /><span className={audio.receiverState === "syncing" || audio.receiverState === "decoding" ? "active" : ""}>02 SYNC</span><i /><span className={audio.receiverState === "decoding" ? "active" : ""}>03 FRAME</span></div>
             </div>
 
             <div className="decoded-card mt-5">
               <div className="flex items-center justify-between gap-4"><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/43">Decoded payload</span>{lastDecoded && <button onClick={copyMessage} className="copy-button"><Copy size={12} />Copy</button>}</div>
-              {lastDecoded ? <div className="decoded-message"><p>{lastDecoded.text}</p><div><span>SEQ {String(lastDecoded.sequence).padStart(3, "0")}</span><span>QUALITY {lastDecoded.quality}%</span><span>{formatTime(lastDecoded.receivedAt)}</span></div></div> : <div className="empty-decode"><Radio size={22} /><p>{audio.listening ? "Listening for sync pattern…" : "Start the receiver to arm the microphone."}</p></div>}
+              {lastDecoded ? <div className="decoded-message"><p>{lastDecoded.text}</p><div><span>SEQ {String(lastDecoded.sequence).padStart(3, "0")}</span><span>QUALITY {lastDecoded.quality}%</span><span>{formatTime(lastDecoded.receivedAt)}</span></div></div> : <div className="empty-decode"><Radio size={22} /><strong>{receiverCue.label}</strong><p>{receiverCue.copy}</p></div>}
             </div>
 
-            <div className="mt-5 flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5"><div className="level-meter"><span style={{ height: `${Math.max(6, audio.inputLevel * 100)}%` }} /></div><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-white/68">Input level</p><p className="mt-0.5 text-[10px] text-white/36">{audio.listening ? "Direct microphone signal · DSP overrides requested" : "Waiting for microphone permission"}</p></div><span className={`text-[10px] font-bold ${audio.inputLevel > 0.65 ? "text-[#e6d581]" : "text-[#73d6ff]"}`}>{audio.inputLevel > 0.65 ? "HIGH" : "CLEAR"}</span></div>
+            <div className="mt-5 flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5"><div className="level-meter"><span style={{ height: `${Math.max(6, audio.inputLevel * 100)}%` }} /></div><div className="min-w-0 flex-1"><p className="text-[11px] font-semibold text-white/68">Signal diagnostics</p><p className="mt-0.5 text-[10px] text-white/36">{audio.listening ? `${receiverCue.label} · noise floor ${Math.round(audio.receiverNoiseFloor * 1000) / 1000}` : "Waiting for microphone permission"}</p></div><span className={`text-[10px] font-bold ${audio.receiverConfidence > 0.58 ? "text-[#89f2be]" : audio.inputLevel > 0.65 ? "text-[#e6d581]" : "text-[#73d6ff]"}`}>{audio.receiverConfidence > 0.58 ? "LOCK" : audio.inputLevel > 0.65 ? "HIGH" : "CLEAR"}</span></div>
           </div>
 
           <aside className="flex flex-col gap-4">
             <div className="settings-card p-5">
               <div className="mb-5 flex items-center justify-between"><div className="eyebrow"><Settings2 size={13} /> Link settings</div><button onClick={() => void audio.refreshDevices()} className="icon-button" aria-label="Refresh audio devices"><RefreshCw size={13} /></button></div>
 
-              <div className="settings-group"><label>Frequency band</label><SegmentedToggle value={band} options={[{ value: "audible", label: "Audible" }, { value: "ultrasonic", label: "Near-US" }]} onChange={setBand} /><p>{band === "audible" ? "Clear, compatible 1.7–6.8 kHz." : "Quieter 14.5–19.8 kHz; test your hardware."}</p></div>
-              <div className="settings-group"><label className="flex justify-between"><span>Speed / robustness</span><strong>{sonicProfiles[profile].label}</strong></label><input type="range" min="0" max="100" value={speedValue} onChange={event => setSpeed(Number(event.target.value))} className="sonic-range" /><div className="range-labels"><span>Robust</span><span>Turbo</span></div></div>
+              <div className="settings-group"><label>Frequency band</label><SegmentedToggle value={band} options={[{ value: "audible", label: "Audible" }, { value: "ultrasonic", label: "Near-US" }]} onChange={setBand} /><p>{band === "audible" ? "Clear, compatible 1.7–6.8 kHz." : "Quieter 14.5–19.8 kHz; test your hardware."} Match this setting on the sender.</p></div>
+              <div className="settings-group"><label className="flex justify-between"><span>Speed / robustness</span><strong>{sonicProfiles[profile].label}</strong></label><input type="range" min="0" max="100" value={speedValue} onChange={event => setSpeed(Number(event.target.value))} className="sonic-range" /><div className="range-labels"><span>Robust</span><span>Turbo</span></div><p>Match this profile on both devices. Start with Robust for longer rooms or phone speakers.</p></div>
               <div className="settings-group"><label className="flex justify-between"><span>Output volume</span><strong>{Math.round(volume * 100)}%</strong></label><input type="range" min="0.1" max="1" step="0.05" value={volume} onChange={event => setVolume(Number(event.target.value))} className="sonic-range volume-range" /></div>
               <div className="settings-group"><label>Microphone</label><DeviceSelect value={audio.selectedInputId} devices={audio.inputDevices} onChange={id => void audio.selectInput(id)} icon={Mic} /><button onClick={() => void audio.startListening(audio.selectedInputId)} className="permission-button"><Mic size={13} />{audio.permission === "granted" ? "Refresh microphone" : "Allow microphone"}</button></div>
               <div className="settings-group"><label>Speaker</label><DeviceSelect value={audio.selectedOutputId} devices={audio.outputDevices} onChange={id => void audio.selectOutput(id)} icon={Volume2} disabled={!audio.outputDeviceSupported} /><p>{audio.outputDeviceSupported ? "Output routing is supported in this browser." : "Browser uses the system default speaker."}</p></div>

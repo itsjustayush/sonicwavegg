@@ -19,3 +19,8 @@
 - [x] Diagnose and fix the Vercel deployment response that currently renders compiled source code instead of the Sonic Morse application.
 - [x] Validate the corrected Vercel routing/build configuration locally, push the fix to GitHub, and provide a redeployment instruction.
 - [x] Notify the user that the Vercel output-directory fix is live and explain the manual redeploy fallback if an older build remains cached.
+- [x] Diagnose the reported real-world receiver decoding failures and identify weaknesses in synchronization, carrier detection, and timing recovery.
+- [x] Improve the custom acoustic receiver with tolerance-aware symbol detection, reliable frame synchronization, noise gating, and visible signal diagnostics.
+- [x] Refine the receiver experience and visual system using gbrl.ai as interaction and design inspiration without copying its implementation or content.
+- [x] Add regression tests for impaired/timing-shifted acoustic frames, verify desktop/mobile rendering, and publish the validated receiver update.
+- [ ] Save and push the receiver-reliability update, then confirm the live app includes the improved receiver diagnostics.
